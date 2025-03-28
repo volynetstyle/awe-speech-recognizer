@@ -1,78 +1,89 @@
-#include "speech_recognizer.h"
-#include <pocketsphinx.h>
+
 #include <stdexcept>
 #include <cstring>
 #include <vector>
 
+#include "speech_recognizer.h"
+#include <portaudio.h>
+
+namespace {
+    constexpr int SAMPLE_RATE = 16000;
+    using AudioBuffer = std::vector<int16>;
+    using ErrorMsg = std::string;
+
+    void check_pa_error(PaError err, const char* msg) {
+        if (err != paNoError) {
+            throw std::runtime_error(ErrorMsg(msg) + ": " + Pa_GetErrorText(err));
+        }
+    }
+}
+
+typedef ps_vad_mode_e EVoiceActivityDetection;
+
 SpeechRecognizer::SpeechRecognizer(std::string_view hmm, std::string_view lm, std::string_view dict) {
-    cmd_ln_t* config = cmd_ln_init(nullptr, ps_args(), TRUE,
-        "-hmm", hmm.data(),
-        "-lm", lm.data(),
-        "-dict", dict.data(),
-        nullptr);
-    
-    if (!config) {
-        throw std::runtime_error("Failed to initialize config");
-    }
+    ConfigPtr::pointer config = ps_config_init(nullptr);
+    if (!config) throw std::runtime_error("Failed to initialize config");
+    ConfigPtr config_guard(config);
 
-    struct ConfigDeleter {
-        void operator()(cmd_ln_t* config) const noexcept { cmd_ln_free_r(config); }
-    };
-    std::unique_ptr<cmd_ln_t, ConfigDeleter> config_guard(config);
+    ps_config_set_str(config, "hmm", hmm.data());
+    ps_config_set_str(config, "lm", lm.data());
+    ps_config_set_str(config, "dict", dict.data());
+    ps_config_set_int(config, "samprate", SAMPLE_RATE);
 
-    decoder_ = std::unique_ptr<ps_decoder_t, DecoderDeleter>(ps_init(config));
-    if (!decoder_) {
-        throw std::runtime_error("Failed to initialize decoder");
-    }
-    config_guard.release(); /
+    decoder_ = DecoderPtr(ps_init(config));
+    if (!decoder_) throw std::runtime_error("Failed to initialize decoder");
+    config_guard.release();
 
-    audio_device_ = std::unique_ptr<ad_rec_t, AudioDeleter>(ad_open_dev(nullptr, 16000));
-    if (!audio_device_) {
-        throw std::runtime_error("Failed to open audio device");
-    }
+    ep_ = EndpointerPtr(ps_endpointer_init(0, 0.0, PS_VAD_LOOSE, 0, 0));
+    if (!ep_) throw std::runtime_error("Failed to initialize endpointer");
 
+    frame_size_ = ps_endpointer_frame_size(ep_.get());
     is_initialized_ = true;
 }
 
 std::string SpeechRecognizer::recognize() {
-    if (!is_initialized_) {
-        return "Recognizer not initialized";
+    if (!is_initialized_) return "Recognizer not initialized";
+
+    PaStream* stream;
+    PaError err = Pa_OpenDefaultStream(&stream, 1, 0, paInt16, SAMPLE_RATE, frame_size_, nullptr, nullptr);
+    if (err != paNoError) return ErrorMsg("Failed to open stream: ") + Pa_GetErrorText(err);
+
+    err = Pa_StartStream(stream);
+    if (err != paNoError) {
+        Pa_CloseStream(stream);
+        return ErrorMsg("Failed to start stream: ") + Pa_GetErrorText(err);
     }
 
-    if (ad_start_rec(audio_device_.get()) < 0) {
-        return "Failed to start recording";
-    }
-    if (ps_start_utt(decoder_.get()) < 0) {
-        return "Failed to start utterance";
-    }
-
-    constexpr size_t BUFFER_SIZE = 2048;
-    std::vector<int16> buffer(BUFFER_SIZE);
+    AudioBuffer buffer(frame_size_);
     std::string result;
-    bool is_speech = false;
+    bool in_speech = false;
 
     while (true) {
-        int32 k = ad_read(audio_device_.get(), buffer.data(), BUFFER_SIZE);
-        if (k < 0) {
-            break;
-        }
+        err = Pa_ReadStream(stream, buffer.data(), frame_size_);
+        if (err != paNoError) break;
 
-        ps_process_raw(decoder_.get(), buffer.data(), k, FALSE, FALSE);
-        
-        int32 score;
-        if (const char* hyp = ps_get_hyp(decoder_.get(), &score)) {
-            result = hyp;
-            is_speech = true;
-        }
-
-        if (is_speech && k < static_cast<int32>(BUFFER_SIZE)) {
-            break;
+        const int16* speech = ps_endpointer_process(ep_.get(), buffer.data());
+        if (speech != nullptr) {
+            if (!in_speech) {
+                in_speech = true;
+                if (ps_start_utt(decoder_.get()) < 0) {
+                    Pa_CloseStream(stream);
+                    return "Failed to start utterance";
+                }
+            }
+            ps_process_raw(decoder_.get(), speech, frame_size_, FALSE, FALSE);
+            if (!ps_endpointer_in_speech(ep_.get())) {
+                ps_end_utt(decoder_.get());
+                int32 score;
+                const char* hyp = ps_get_hyp(decoder_.get(), &score);
+                if (hyp != nullptr) result = hyp;
+                break;
+            }
         }
     }
 
-    ad_stop_rec(audio_device_.get());
-    ps_end_utt(decoder_.get());
-
+    Pa_StopStream(stream);
+    Pa_CloseStream(stream);
     return result.empty() ? "No speech detected" : result;
 }
 
@@ -86,13 +97,11 @@ extern "C" {
     }
 
     void destroy_recognizer(SpeechRecognizer* recognizer) noexcept {
-        delete recognizer;
+        delete recognizer; // Assume Pa_Terminate() called globally
     }
 
     const char* recognize_speech(SpeechRecognizer* recognizer) {
-        if (!recognizer) {
-            return nullptr;
-        }
+        if (!recognizer) return nullptr;
         std::string result = recognizer->recognize();
         char* c_result = new char[result.length() + 1];
         std::strcpy(c_result, result.c_str());

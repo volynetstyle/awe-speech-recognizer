@@ -4,6 +4,23 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <pocketsphinx.h>
+
+using DecoderPtr = std::unique_ptr<ps_decoder_t, struct DecoderDeleter>;
+using EndpointerPtr = std::unique_ptr<ps_endpointer_t, struct EndpointerDeleter>;
+using ConfigPtr = std::unique_ptr<ps_config_t, struct ConfigDeleter>;
+
+struct DecoderDeleter {
+    void operator()(ps_decoder_t* ps) const noexcept { ps_free(ps); }
+};
+
+struct EndpointerDeleter {
+    void operator()(ps_endpointer_t* ep) const noexcept { ps_endpointer_free(ep); }
+};
+
+struct ConfigDeleter {
+    void operator()(ps_config_t* config) const noexcept { ps_config_free(config); }
+};
 
 class SpeechRecognizer {
 public:
@@ -14,15 +31,9 @@ public:
     std::string recognize();
 
 private:
-    struct DecoderDeleter {
-        void operator()(ps_decoder_t* ps) const noexcept { ps_free(ps); }
-    };
-    struct AudioDeleter {
-        void operator()(ad_rec_t* ad) const noexcept { ad_close(ad); }
-    };
-
-    std::unique_ptr<ps_decoder_t, DecoderDeleter> decoder_;
-    std::unique_ptr<ad_rec_t, AudioDeleter> audio_device_;
+    DecoderPtr decoder_;
+    EndpointerPtr ep_;
+    size_t frame_size_;
     bool is_initialized_ = false;
 };
 

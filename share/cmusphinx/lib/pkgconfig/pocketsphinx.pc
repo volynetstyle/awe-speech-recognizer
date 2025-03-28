@@ -1,0 +1,15 @@
+prefix=/home/volynetstyle/cmusphinx
+exec_prefix=/home/volynetstyle/cmusphinx
+libdir=/home/volynetstyle/cmusphinx/lib
+includedir=/home/volynetstyle/cmusphinx/include
+libs=
+datadir=/home/volynetstyle/cmusphinx/share/pocketsphinx
+modeldir=/home/volynetstyle/cmusphinx/share/pocketsphinx/model
+
+Name: PocketSphinx
+Description: Lightweight speech recognition system
+Version: 5.0.4
+URL: https://github.com/cmusphinx/pocketsphinx
+Libs: -L${libdir} -lpocketsphinx
+Libs.private: ${libs} -lm
+Cflags: -I${includedir} -I${includedir}/pocketsphinx

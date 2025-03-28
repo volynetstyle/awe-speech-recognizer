@@ -3,13 +3,13 @@
    "target": "es2018",
    "module": "commonjs",
    "outDir": "./dist",
-   "rootDir": "./src/ts",
+   "rootDir": "./lib",
    "strict": true,
    "esModuleInterop": true,
    "skipLibCheck": true,
    "declaration": true,
    "sourceMap": true
  },
- "include": ["src/ts/**/*"],
+"include": ["lib/**/*"],
  "exclude": ["node_modules"]
 }

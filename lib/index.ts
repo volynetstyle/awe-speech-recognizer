@@ -1,4 +1,4 @@
-import { nativeBindings } from './bindings';
+import nativeBindings from './bindings';
 import { SpeechRecognizerOptions } from './types';
 
 const DEFAULT_HMM = '/usr/local/share/pocketsphinx/model/en-us/en-us';
