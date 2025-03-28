@@ -1,0 +1,47 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# TypeScript
+dist/
+*.tsbuildinfo
+
+# C++ и node-gyp
+build/
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.node
+Binding.gyp
+config.gypi
+target.mk
+Release/
+Debug/
+
+# others
+*.log
+*.tmp
+*.swp
+
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+.DS_Store
+Thumbs.db
+
+coverage/
+test-output/
+
+.env
+.local
+
+models/
