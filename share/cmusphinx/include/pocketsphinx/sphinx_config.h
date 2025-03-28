@@ -12,7 +12,7 @@
 #endif
 
 /* The size of `long', as computed by sizeof. */
-#define SIZEOF_LONG 8
+#define SIZEOF_LONG 4
 
 /* Define if the system has the type `long long'. */
 #ifndef HAVE_LONG_LONG /* sometimes it is already defined */

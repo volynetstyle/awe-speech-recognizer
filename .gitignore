@@ -9,7 +9,7 @@ yarn.lock
 dist/
 *.tsbuildinfo
 
-shared/
+share/
 # C++ и node-gyp
 build/
 *.o

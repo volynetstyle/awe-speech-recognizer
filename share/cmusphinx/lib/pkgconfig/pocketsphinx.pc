@@ -1,10 +1,10 @@
-prefix=/home/volynetstyle/cmusphinx
-exec_prefix=/home/volynetstyle/cmusphinx
-libdir=/home/volynetstyle/cmusphinx/lib
-includedir=/home/volynetstyle/cmusphinx/include
+prefix=D:/Projects/AWE/awe-speech-recognizer/share/cmusphinx
+exec_prefix=D:/Projects/AWE/awe-speech-recognizer/share/cmusphinx
+libdir=D:/Projects/AWE/awe-speech-recognizer/share/cmusphinx/lib
+includedir=D:/Projects/AWE/awe-speech-recognizer/share/cmusphinx/include
 libs=
-datadir=/home/volynetstyle/cmusphinx/share/pocketsphinx
-modeldir=/home/volynetstyle/cmusphinx/share/pocketsphinx/model
+datadir=D:/Projects/AWE/awe-speech-recognizer/share/cmusphinx/share/pocketsphinx
+modeldir=D:/Projects/AWE/awe-speech-recognizer/share/cmusphinx/share/pocketsphinx/model
 
 Name: PocketSphinx
 Description: Lightweight speech recognition system

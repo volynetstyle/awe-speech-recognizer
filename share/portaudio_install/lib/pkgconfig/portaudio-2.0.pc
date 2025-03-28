@@ -1,6 +1,6 @@
-prefix=/home/volynetstyle/portaudio_install
+prefix=D:/Projects/AWE/awe-speech-recognizer/share/portaudio_install
 exec_prefix=${prefix}
-libdir=${exec_prefix}/lib
+libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name: PortAudio
@@ -8,5 +8,5 @@ Description: Portable audio I/O
 Requires:
 Version: 19
 
-Libs: -L${libdir} -lportaudio  -lasound -lm -lpthread
-Cflags: -I${includedir} -pthread
+Libs: -L${libdir} -lportaudio 
+Cflags: -I${includedir} 
